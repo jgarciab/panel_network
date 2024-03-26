@@ -2,14 +2,7 @@ import networkx as nx
 import pandas as pd
 import hvplot.networkx as hvnx
 import panel as pn
-import pylab as plt
-from holoviews import opts
-from holoviews.element.graphs import layout_nodes
-import matplotlib as mpl
-
 import numpy as np
-import pandas as pd
-import networkx as nx
 import pickle
 import requests
 from io import BytesIO

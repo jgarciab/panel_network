@@ -15,7 +15,7 @@ async function startApplication() {
   self.pyodide.globals.set("sendPatch", sendPatch);
   console.log("Loaded!");
   await self.pyodide.loadPackage("micropip");
-  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'holoviews', 'hvplot', 'matplotlib', 'networkx', 'numpy', 'pandas', 'pylab', 'requests', 'scipy']
+  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'hvplot', 'networkx', 'numpy', 'pandas', 'requests', 'scipy']
   for (const pkg of env_spec) {
     let pkg_name;
     if (pkg.endsWith('.whl')) {
@@ -51,14 +51,7 @@ import networkx as nx
 import pandas as pd
 import hvplot.networkx as hvnx
 import panel as pn
-import pylab as plt
-from holoviews import opts
-from holoviews.element.graphs import layout_nodes
-import matplotlib as mpl
-
 import numpy as np
-import pandas as pd
-import networkx as nx
 import pickle
 import requests
 from io import BytesIO
