@@ -15,7 +15,7 @@ async function startApplication() {
   self.pyodide.globals.set("sendPatch", sendPatch);
   console.log("Loaded!");
   await self.pyodide.loadPackage("micropip");
-  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'holoviews', 'hvplot', 'matplotlib', 'networkx', 'numpy', 'pandas', 'pylab']
+  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'holoviews', 'hvplot', 'matplotlib', 'networkx', 'numpy', 'pandas', 'pylab', 'requests', 'scipy']
   for (const pkg of env_spec) {
     let pkg_name;
     if (pkg.endsWith('.whl')) {
@@ -60,13 +60,16 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import pickle
+import requests
+from io import BytesIO
+import scipy
 
 # Sample network file paths (you can replace these with your actual file paths)
 network_files = {
-    'Proximity': 'proximity.graphml',
-    'Survey': 'survey.graphml',
-    'Facebook': 'facebook.graphml',
-    'Diaries': 'diaries.graphml'
+    'Proximity': 'https://javier.science/panel_network/data/proximity.graphml',
+    'Survey': 'https://javier.science/panel_network/data/survey.graphml',
+    'Facebook': 'https://javier.science/panel_network/data/facebook.graphml',
+    'Diaries': 'https://javier.science/panel_network/data/diaries.graphml'
 }
 
 
@@ -94,30 +97,38 @@ def detect_communities(G):
 
 
 def display_statistics(G):
-    print(G)
+
     num_nodes = G.number_of_nodes()
     num_edges = G.number_of_edges()
     density = nx.density(G)
     transitivity = nx.transitivity(G)
     assortativity = nx.degree_assortativity_coefficient(G)
+    gender_assort = nx.assortativity.attribute_assortativity_coefficient(G, "Gender")
+    class_assort = nx.assortativity.attribute_assortativity_coefficient(G, "Classroom")
+    program_assort = nx.assortativity.attribute_assortativity_coefficient(G, "Program")
+    
     diameter = nx.diameter(G)
     avg_degree = sum(dict(G.degree()).values()) / num_nodes
     num_components = nx.number_connected_components(G)
     
-    data = {
-        'Metric': ['Number of Nodes', 'Number of Edges', 'Density', 'Transitivity', 
-                   'Assortativity', 'Diameter', 'Average Degree', 'Number of Components'],
-        'Value': [num_nodes, num_edges, density, transitivity, assortativity, diameter, avg_degree, num_components]
-    }
+    stats = f"Number of Nodes: {num_nodes}<br>"
+    stats += f"Number of Edges: {num_edges}<br>"
+    stats += f"Average Degree: {avg_degree:2.2f}<br>"
+    stats += f"Diameter: {diameter}<br>"
+    stats += f"Density: {density:2.2f}<br>"
+    stats += f"Transitivity: {transitivity:2.2f}<br>"
+    stats += f"Degree assortativity: {assortativity:2.2f}<br>"
+    stats += f"Gender assortativity: {gender_assort:2.2f}<br>"
+    stats += f"Clasroom assortativity: {class_assort:2.2f}<br>"
+    stats += f"Program assortativity: {program_assort:2.2f}<br>"
     
-    df = pd.DataFrame(data)
-    return pn.widgets.DataFrame(df.set_index("Metric"))
+    return pn.pane.HTML(stats)
 
 # Visualize network
-def visualize_network(file_path, centrality_measure="Degree", community_measure="Community (inferred)"):
-    G = nx.read_graphml(file_path)
-
-    pos = pickle.load(open("positions_nodes.pkl", "rb"))
+def visualize_network(G, centrality_measure="Degree", community_measure="Community (inferred)"):
+    # Load node positions
+    pos_response = requests.get("https://javier.science/panel_network/data/positions_nodes.pkl")
+    pos = pickle.load(BytesIO(pos_response.content))
     
     # Compute centrality measures
     centrality = compute_centrality_measures(G, centrality_measure)
@@ -169,10 +180,12 @@ community_toggle = pn.widgets.Select(options=['Community (inferred)', 'Gender', 
 
 # Create panel app layout
 def update_app(file_path, centrality_measure, community_detection):
-    network_plot = visualize_network(file_path, centrality_measure, community_detection)
-    #stats_table = display_statistics(file_path)
+    response = requests.get(file_path)
+    G = nx.read_graphml(BytesIO(response.content))
+    network_plot = visualize_network(G, centrality_measure, community_detection)
+    stats_table = display_statistics(G)
     return pn.Row(
-        pn.Column(file_selector, centrality_selector, community_toggle),
+        pn.Column(file_selector, centrality_selector, community_toggle, stats_table),
         pn.Column(network_plot)
     )
 
