@@ -28,7 +28,6 @@ def compute_centrality_measures(G, measure):
         'Betweenness': nx.betweenness_centrality,
         'Closeness': nx.closeness_centrality,
         'PageRank': nx.pagerank,
-        'Eigenvector': nx.eigenvector_centrality,
         # Add more centrality measures as needed
     }
     return measures[measure](G)
@@ -41,7 +40,7 @@ def detect_communities(G):
 
 
 def display_statistics(G):
-
+    
     num_nodes = G.number_of_nodes()
     num_edges = G.number_of_edges()
     density = nx.density(G)
@@ -105,7 +104,7 @@ def visualize_network(G, centrality_measure="Degree", community_measure="Communi
                        node_size=size, 
                        node_color=color, 
                        edge_color='darkgray', 
-                       edge_alpha=0.5
+                       edge_alpha=0.2
                       )
     
 
@@ -117,21 +116,48 @@ def visualize_network(G, centrality_measure="Degree", community_measure="Communi
 file_selector = pn.widgets.Select(options=network_files, name='Select Network File')
 
 # Create centrality measure selector widget
-centrality_selector = pn.widgets.Select(options=['Degree', 'Betweenness', 'Closeness', 'PageRank', 'Eigenvector'], name='Node size: Centrality Measure')
+centrality_selector = pn.widgets.Select(options=['Degree', 'Betweenness', 'Closeness', 'PageRank'], name='Node size: Centrality Measure')
 
 # Create community detection toggle
 community_toggle = pn.widgets.Select(options=['Community (inferred)', 'Gender', 'Program', 'Classroom'], name='Node coor: Centrality Measure')
 
+# Read network
+response = requests.get(file_selector.value)
+G = nx.read_graphml(BytesIO(response.content))
+connected_components = list(nx.connected_components(G))
+
+# Select the largest connected component
+largest_component = max(connected_components, key=len)
+G = G.subgraph(largest_component)
+stats_table = display_statistics(G)
+
+def update_graph(event):
+    global G
+    global stats_table
+    # Read network
+    response = requests.get(event.new)
+    G = nx.read_graphml(BytesIO(response.content))
+    connected_components = list(nx.connected_components(G))
+    
+    # Select the largest connected component
+    largest_component = max(connected_components, key=len)
+    G = G.subgraph(largest_component)
+    stats_table = display_statistics(G)
+
+
 # Create panel app layout
 def update_app(file_path, centrality_measure, community_detection):
-    response = requests.get(file_path)
-    G = nx.read_graphml(BytesIO(response.content))
+    global G
+    global stats_table
+    
     network_plot = visualize_network(G, centrality_measure, community_detection)
-    stats_table = display_statistics(G)
+    
     return pn.Row(
         pn.Column(file_selector, centrality_selector, community_toggle, stats_table),
         pn.Column(network_plot)
     )
+
+file_selector.param.watch(update_graph, "value")
 
 app = pn.bind(update_app,
         file_path=file_selector.param.value, 
