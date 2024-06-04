@@ -119,7 +119,7 @@ file_selector = pn.widgets.Select(options=network_files, name='Select Network Fi
 centrality_selector = pn.widgets.Select(options=['Degree', 'Betweenness', 'Closeness', 'PageRank'], name='Node size: Centrality Measure')
 
 # Create community detection toggle
-community_toggle = pn.widgets.Select(options=['Community (inferred)', 'Gender', 'Program', 'Classroom'], name='Node coor: Centrality Measure')
+community_toggle = pn.widgets.Select(options=['Community (inferred)', 'Gender', 'Program', 'Classroom'], name='Node color: Community')
 
 # Read network
 response = requests.get(file_selector.value)
